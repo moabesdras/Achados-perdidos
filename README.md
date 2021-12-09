@@ -4,7 +4,7 @@
 ```
 git clone git@github.com:moabesdras/achados-perdidos.git
 
-cd cc0050
+cd achados-perdidos
 
 docker-compose up -d
 
