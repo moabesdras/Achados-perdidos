@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+
+<table class="table table-dark table-striped">
+<tr>
+    <th>ID</th>
+    <th>Nome</th>
+    <th>Onde foi achado</th>
+    <th>Data da entrega</th>
+    <th>Devolvido ?</th>
+</tr>
+{% for chave in chaves %}
+    <tr>
+        <td>{{chave.id}}</td>
+        <td>{{chave.nome}}</td>
+        <td>{{chave.local}}</td>
+        <td>{{chave.entrega}}</td>
+        <td>{{chave.disponivel}}</td>
+    </tr>
+{% endfor %}
+
+</table>
+
+{% endblock %}
