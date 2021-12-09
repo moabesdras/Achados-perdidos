@@ -1,4 +1,4 @@
-# CC0050 - Princípiosde desenvolvimento WEB
+# CC0050 - Princípios de desenvolvimento WEB
 
 ## Testando a aplicação
 ```
