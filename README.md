@@ -2,7 +2,7 @@
 
 ## Testando a aplicação
 ```
-git clone https://gitlab.com/rafaelperazzo/cc0050.git
+git clone git@github.com:moabesdras/achados-perdidos.git
 
 cd cc0050
 
