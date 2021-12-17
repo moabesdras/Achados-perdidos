@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+
+<table class="table table-success table-striped">
+
+    <tr>
+        <th>ID da devolução</th>
+        <th>Responsável</th>
+        <th>Devolvido à</th>
+        <th>Objeto</th>
+        <th>Data</th>
+        <th>Remover</th>
+    </tr>
+    
+    {% for emprestimo in emprestimos %}
+        <tr>
+            <td>{{emprestimo.id}}</td>
+            <td>{{emprestimo.usuario.nome}}</td>
+            <td>{{emprestimo.nome_pessoa}}</td>
+            <td>{{emprestimo.chave.nome}}</td>
+            <td>{{emprestimo.data_emprestimo.strftime('%d/%m/%Y %H:%M')}}</td>
+            <td><a href="{{url_for('remover_devolucao', id_devolucao=emprestimo.id)}}">REMOVER</a></td>
+        </tr>
+    {% endfor %}
+
+</table>
+
+{% endblock %}
