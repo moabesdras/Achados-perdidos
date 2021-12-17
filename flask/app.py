@@ -10,7 +10,7 @@ import os
 import datetime
 from formObjeto import ChaveForm
 from formUsuario import UsuarioForm
-from formEmprestimo import EmprestimoForm
+from formDevolver import EmprestimoForm
 from flask_session import Session
 from flask import session
 from formLogin import LoginForm
@@ -35,26 +35,30 @@ db.init_app(app)
 
 from Usuarios import Usuario
 from Objetos import Chave
-from Emprestimo import Emprestimo
+from Devolucao import Emprestimo
 
 @app.before_first_request
+
 def inicializar_bd():
     #db.drop_all()
     db.create_all()
 
 @app.route('/')
+
 def root():
-    if session.get('autenticado',False)==False:
+    if session.get('autenticado', False)==False:
         return (redirect(url_for('login')))
     return (render_template('index.html'))
         
-@app.route('/achados-e-perdidos/cadastrar', methods=['POST', 'GET'])
+@app.route('/objetos/cadastrar', methods=['POST', 'GET'])
+
 def cadastrar_objeto():
     if session.get('autenticado', False) == False:
         return (redirect(url_for('login')))
     form = ChaveForm()
+
     if form.validate_on_submit():
-        # PROCESSAMENTO DOS DADOS RECEBIDOS
+        # Processamento dos dados recebidos
         nome = request.form['nome']
         local = request.form['local']
         entrega = request.form['entrega']
@@ -66,24 +70,28 @@ def cadastrar_objeto():
     return (render_template('form.html', form=form, action=url_for('cadastrar_objeto')))
 
 @app.route('/objetos/listar')
+
 def listar_objetos():
-    chaves = Chave.query.order_by(Chave.nome).all()
+    chaves = Chave.query.order_by(Chave.id.desc()).all()
     return(render_template('objetos.html', chaves=chaves))
 
 @app.route('/usuario/listar')
+
 def listar_usuarios():
     if session.get('autenticado', False) == False:
         return (redirect(url_for('login')))
     usuarios = Usuario.query.order_by(Usuario.nome).all()
     return(render_template('usuarios.html', usuarios=usuarios))
 
-@app.route('/usuario/cadastrar',methods=['POST', 'GET'])
+@app.route('/usuario/cadastrar', methods=['POST', 'GET'])
+
 def cadastrar_usuario():
     if session.get('autenticado', False) == False:
         return (redirect(url_for('login')))
     form = UsuarioForm()
+
     if form.validate_on_submit():
-        # PROCESSAMENTO DOS DADOS RECEBIDOS
+        # Processamento dos dados recebidos
         nome = request.form['nome']
         username = request.form['username']
         email = request.form['email']
@@ -91,7 +99,7 @@ def cadastrar_usuario():
         senha = request.form['senha']
         senhahash = hashlib.sha1(senha.encode('utf8')).hexdigest()
 
-        novoUsuario = Usuario(nome=nome,username=username,email=email,telefone=telefone,senha=senhahash)
+        novoUsuario = Usuario(nome=nome, username=username, email=email, telefone=telefone, senha=senhahash)
         db.session.add(novoUsuario)
         db.session.commit()
 
@@ -100,93 +108,81 @@ def cadastrar_usuario():
     return (render_template('form.html', form=form, action=url_for('cadastrar_usuario')))
 
 @app.route('/objetos/devolver', methods=['POST', 'GET'])
+
 def devolver_objeto():
     if session.get('autenticado', False) == False:
         return (redirect(url_for('login')))
-    form = EmprestimoForm()
-    chaves = Chave.query.filter(Chave.disponivel==False).order_by(Chave.nome).all()
-    form.chave.choices = [(c.id,c.nome) for c in chaves]
-    if form.validate_on_submit():
-        # IMPLEMENTAÇÃO DO CADASTRO DO EMPRÉSTIMO
-        nome = request.form['nome']
-        chave = int(request.form['chave'])
-        novoEmprestimo = Emprestimo(id_usuario=1, id_chave=chave, nome_pessoa=nome)
-        chaveAlterada = Chave.query.get(chave)
-        chaveAlterada.disponivel = True
-        db.session.add(novoEmprestimo)
-        db.session.commit()
 
+    form = EmprestimoForm()
+    objetos = Chave.query.filter(Chave.disponivel==False).order_by(Chave.nome).all()
+    form.chave.choices = [(c.id,c.nome) for c in objetos]
+
+    if form.validate_on_submit():
+        # Registro da devolução
+        nome = request.form['nome']
+        objeto = int(request.form['chave'])
+        novaDevolucao = Emprestimo(id_usuario=1, id_chave=objeto, nome_pessoa=nome)
+        objetoDevolvido = Chave.query.get(objeto)
+        objetoDevolvido.disponivel = True
+        db.session.add(novaDevolucao)
+        db.session.commit()
         return(redirect(url_for('root')))
+
     return(render_template('form.html', form=form,action=url_for('devolver_objeto')))
 
 @app.route('/objetos/listar_devolucoes')
+
 def listar_devolucoes():
     emprestimos = Emprestimo.query.order_by(Emprestimo.data_emprestimo.desc()).all()
-    return(render_template('emprestimos.html', emprestimos=emprestimos))
+    return(render_template('devolucoes.html', emprestimos=emprestimos))
 
-@app.route('/chave/devolver/<id_emprestimo>', methods=['GET', 'POST'])
-def devolver_chave(id_emprestimo):
+@app.route('/devolucoes/remover/<id_devolucao>', methods=['GET', 'POST'])
+
+def remover_devolucao(id_devolucao):
     if session.get('autenticado', False) == False:
         return (redirect(url_for('login')))
-    id_emprestimo = int(id_emprestimo)
-    emprestimo = Emprestimo.query.get(id_emprestimo)
-    emprestimo.data_devolucao = datetime.datetime.now()
-    chave = Chave.query.get(emprestimo.id_chave)
-    chave.disponivel = True
-    db.session.commit()
-    return (redirect(url_for('root')))
 
-@app.route('/emprestimo/remover/<id_emprestimo>', methods=['GET', 'POST'])
-def remover_emprestimo(id_emprestimo):
-    if session.get('autenticado', False) == False:
-        return (redirect(url_for('login')))
-    id_emprestimo = int(id_emprestimo)
-    emprestimo = Emprestimo.query.get(id_emprestimo)
-    id_chave = emprestimo.id_chave
-    chave = Chave.query.get(id_chave)
-    chave.disponivel = True
-    db.session.delete(emprestimo)
+    id_devolucao = int(id_devolucao)
+    devolucao = Emprestimo.query.get(id_devolucao)
+    id_chave = devolucao.id_chave
+    objeto = Chave.query.get(id_chave)
+    objeto.disponivel = True
+    db.session.delete(devolucao)
     db.session.commit()
     return (redirect(url_for('root')))
 
 @app.route('/usuario/login', methods=['POST', 'GET'])
+
 def login():
     form = LoginForm()
+
     if form.validate_on_submit():
-        # PROCESSAMENTO DOS DADOS RECEBIDOS
+        # Processamento dos dados recebidos
         usuario = request.form['usuario']
         senha = request.form['senha']
         senhahash = hashlib.sha1(senha.encode('utf8')).hexdigest()
 
         # Verificar se existe alguma linha na tabela usuários com o login e senha recebidos
         linha = Usuario.query.filter(Usuario.username==usuario, Usuario.senha==senhahash).all()
-        if (len(linha)>0): # "Anota" na sessão que o usuário está autenticado
+
+        # Troca o status da sessão para "autenticado"
+        if (len(linha)>0):
             session['autenticado'] = True
             session['usuario'] = linha[0].id
-            flash(u'Usuário autenticado com sucesso!')
-            resp = make_response(redirect(url_for('root')))
-
-            if 'contador' in request.cookies:
-                contador = int(request.cookies['contador'])
-                contador = contador + 1
-            else:
-                contador = 1
-            resp.set_cookie('contador',str(contador))
-            return(resp)
-
-        else: # Usuário e senha não conferem
-            flash(u'Usuário e/ou senha não conferem!')
-            resposta = make_response(redirect(url_for('login')))
-            if 'contador2' in request.cookies:
-                contador2 = int(request.cookies['contador2'])
-                contador2 = contador2 + 1
-            else:
-                contador2 = 1
-            resposta.set_cookie('contador2', str(contador2)) 
+            flash(usuario + u' logou com sucesso!', 'success')
+            resposta = make_response(redirect(url_for('root')))
             return(resposta)
+
+        # Usuário ou senha não conferem
+        else:
+            flash(u'Usuário e/ou senha não conferem!', 'error')
+            resposta = make_response(redirect(url_for('login')))
+            return(resposta)
+
     return (render_template('form.html', form=form, action=url_for('login')))
 
 @app.route('/usuario/logout', methods=['POST', 'GET'])
+
 def logout():
     session.clear()
     return(redirect(url_for('login')))
